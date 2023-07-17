@@ -1,13 +1,3 @@
-小米 12 Android  13 测试  可以之间删掉 不在起来
-
-➜  ~ adb shell ps | grep leoric
-u0_a330      19711  1151 6382536 126688 0                   0 S me.weishu.leoric
-u0_a330      19750  1151 6149240  92328 0                   0 S me.weishu.leoric:resident
-u0_a330      19776     1 6133800  39080 0                   0 S me.weishu.leoric:resident
-➜  ~ adb shell am force-stop me.weishu.leoric
-➜  ~ adb shell ps | grep leoric
-
-
 # Leoric
 
 Leoric 是一个 Android 上的黑科技保活方法的 PoC，它可以对抗在任意 Android 版本上的 force-stop 杀进程。

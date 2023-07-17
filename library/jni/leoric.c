@@ -28,13 +28,16 @@
 
 #include <android/log.h>
 
-#define TAG		"Leoric"
-#define LOGI(...)	__android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
-#define LOGD(...)	__android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
-#define LOGW(...)	__android_log_print(ANDROID_LOG_WARN, TAG, __VA_ARGS__)
-#define	LOGE(...)	__android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+#include "string.h"
 
-#define	DAEMON_CALLBACK_NAME		"onDaemonDead"
+
+#define TAG        "Leoric"
+#define LOGI(...)    __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
+#define LOGD(...)    __android_log_print(ANDROID_LOG_DEBUG, TAG, __VA_ARGS__)
+#define LOGW(...)    __android_log_print(ANDROID_LOG_WARN, TAG, __VA_ARGS__)
+#define    LOGE(...)    __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+
+#define    DAEMON_CALLBACK_NAME        "onDaemonDead"
 
 void waitfor_self_observer(char *observer_file_path) {
     int lockFileDescriptor = open(observer_file_path, O_RDONLY);
@@ -162,29 +165,113 @@ void create_file_if_not_exist(char *path) {
 }
 
 void set_process_name(JNIEnv *env) {
-    jclass process = (*env)->FindClass(env, "android/os/Process");
-    jmethodID setArgV0 = (*env)->GetStaticMethodID(env, process, "setArgV0",
-                                                   "(Ljava/lang/String;)V");
-    jstring name = (*env)->NewStringUTF(env, "app_d");
-    (*env)->CallStaticVoidMethod(env, process, setArgV0, name);
+//    jclass process = (*env)->FindClass(env, "android/os/Process");
+//    jmethodID setArgV0 = (*env)->GetStaticMethodID(env, process, "setArgV0",
+//                                                   "(Ljava/lang/String;)V");
+//    jstring name = (*env)->NewStringUTF(env, "app_d");
+//    (*env)->CallStaticVoidMethod(env, process, setArgV0, name);
+}
+
+//jstring str2jstring(JNIEnv* env,const char* pat)
+//{
+//    //定义java String类 strClass
+//    jclass strClass = (env)->FindClass("Ljava/lang/String;");
+//    //获取String(byte[],String)的构造器,用于将本地byte[]数组转换为一个新String
+//    jmethodID ctorID = (env)->GetMethodID(strClass, "<init>", "([BLjava/lang/String;)V");
+//    //建立byte数组
+//    jbyteArray bytes = (env)->NewByteArray(strlen(pat));
+//    //将char* 转换为byte数组
+//    (env)->SetByteArrayRegion(bytes, 0, strlen(pat), (jbyte*)pat);
+//    // 设置String, 保存语言类型,用于byte数组转换至String时的参数
+//    jstring encoding = (env)->NewStringUTF("GB2312");
+//    //将byte数组转换为java String,并输出
+//    return (jstring)(env)->NewObject(strClass, ctorID, bytes, encoding);
+//}
+//
+//
+//std::string jstring2str(JNIEnv* env, jstring jstr)
+//{
+//    char*   rtn   =   NULL;
+//    jclass   clsstring   =   env->FindClass("java/lang/String");
+//    jstring   strencode   =   env->NewStringUTF("GB2312");
+//    jmethodID   mid   =   env->GetMethodID(clsstring,   "getBytes",   "(Ljava/lang/String;)[B");
+//    jbyteArray   barr=   (jbyteArray)env->CallObjectMethod(jstr,mid,strencode);
+//    jsize   alen   =   env->GetArrayLength(barr);
+//    jbyte*   ba   =   env->GetByteArrayElements(barr,JNI_FALSE);
+//    if(alen   >   0)
+//    {
+//        rtn   =   (char*)malloc(alen+1);
+//        memcpy(rtn,ba,alen);
+//        rtn[alen]=0;
+//    }
+//    env->ReleaseByteArrayElements(barr,ba,0);
+//    std::string stemp(rtn);
+//    free(rtn);
+//    return   stemp;
+//}
+
+#define CHARSET_UTF8 "utf8"
+static jclass jClassString = NULL;
+
+void jstringToBuffer(JNIEnv *pEnv, jstring jresult, char **ppBuffer) {
+    if (jClassString == NULL) {
+        jClassString = (*pEnv)->FindClass(pEnv, "java/lang/String");
+    }
+
+    jmethodID jmethod = (*pEnv)->GetMethodID(pEnv, jClassString, "getBytes", "(Ljava/lang/String;)[B");
+    jbyteArray jarr = (jbyteArray) (*pEnv)->CallObjectMethod(pEnv, jresult, jmethod, (*pEnv)->NewStringUTF(pEnv, CHARSET_UTF8));
+    jsize jlen = (*pEnv)->GetArrayLength(pEnv, jarr);
+    jbyte *jdata = (*pEnv)->GetByteArrayElements(pEnv, jarr, JNI_FALSE);
+
+    if (*ppBuffer == NULL) {
+        *ppBuffer = (char *) malloc((int) jlen + 1);
+        memset(*ppBuffer, 0, (int) jlen + 1);
+    }
+    strncpy(*ppBuffer, (char *) jdata, (int) jlen);
+
+    (*pEnv)->ReleaseByteArrayElements(pEnv, jarr, jdata, 0);
+
 }
 
 JNIEXPORT void JNICALL
 Java_me_weishu_leoric_NativeLeoric_doDaemon(JNIEnv *env, jobject jobj,
-                                                               jstring indicatorSelfPath,
-                                                               jstring indicatorDaemonPath,
-                                                               jstring observerSelfPath,
-                                                               jstring observerDaemonPath) {
+                                            jstring indicatorSelfPath,
+                                            jstring indicatorDaemonPath,
+                                            jstring observerSelfPath,
+                                            jstring observerDaemonPath) {
     if (indicatorSelfPath == NULL || indicatorDaemonPath == NULL || observerSelfPath == NULL ||
         observerDaemonPath == NULL) {
         LOGE("parameters cannot be NULL !");
         return;
     }
 
-    char *indicator_self_path = (char *) (*env)->GetStringUTFChars(env, indicatorSelfPath, 0);
-    char *indicator_daemon_path = (char *) (*env)->GetStringUTFChars(env, indicatorDaemonPath, 0);
-    char *observer_self_path = (char *) (*env)->GetStringUTFChars(env, observerSelfPath, 0);
-    char *observer_daemon_path = (char *) (*env)->GetStringUTFChars(env, observerDaemonPath, 0);
+    LOGE("Java_me_weishu_leoric_NativeLeoric_doDaemon");
+
+
+//    const auto stringClass = (*env)->FindClass("java/lang/String");
+//    const auto getBytes = (*env)->GetMethodID(stringClass, "getBytes", "()[B");
+//
+//    const auto stringJbytes = (jbyteArray) (*env)->CallObjectMethod(indicatorSelfPath, getBytes);
+//
+//    const auto length =(*env)->GetArrayLength(stringJbytes);
+//    const auto pBytes = (*env)->GetByteArrayElements(stringJbytes, NULL);
+//    std::string s((char *)pBytes, length);
+//    (*env)->ReleaseByteArrayElements(stringJbytes, pBytes, JNI_ABORT);
+//
+//    const auto pChars = s.c_str(); // if you really do need a pointer
+
+    char *indicator_self_path = NULL;//= (char *) (*env)->GetStringUTFChars(env, indicatorSelfPath, NULL);
+
+    jstringToBuffer(env, indicatorSelfPath, &indicator_self_path);
+
+    char *indicator_daemon_path = NULL;// = (char *) (*env)->GetStringUTFChars(env, indicatorDaemonPath, NULL);
+    jstringToBuffer(env, indicatorDaemonPath, &indicator_daemon_path);
+
+    char *observer_self_path = NULL;//= (char *) (*env)->GetStringUTFChars(env, observerSelfPath, NULL);
+    jstringToBuffer(env, observerSelfPath, &observer_self_path);
+
+    char *observer_daemon_path = NULL;// = (char *) (*env)->GetStringUTFChars(env, observerDaemonPath, NULL);
+    jstringToBuffer(env, observerDaemonPath, &observer_daemon_path);
 
 
     pid_t pid;

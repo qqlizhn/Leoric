@@ -53,7 +53,7 @@ public class Service1 extends Service{
         manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         Intent hangIntent = new Intent(this, MainActivity.class);
 
-        PendingIntent hangPendingIntent = PendingIntent.getActivity(this, 1002, hangIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent hangPendingIntent = PendingIntent.getActivity(this, 1002, hangIntent, PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_MUTABLE);
 
         String CHANNEL_ID = "your_custom_id";//应用频道Id唯一值， 长度若太长可能会被截断，
         String CHANNEL_NAME = "your_custom_name";//最长40个字符，太长会被截断
